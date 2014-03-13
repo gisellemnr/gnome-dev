@@ -167,6 +167,8 @@ gweather_sky_to_string (GWeatherSky sky)
  */
 /*                   NONE                         VICINITY                             LIGHT                      MODERATE                      HEAVY                      SHALLOW                      PATCHES                         PARTIAL                      THUNDERSTORM                    BLOWING                      SHOWERS                         DRIFTING                      FREEZING                      */
 /*               *******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+
+// TODO: this needs to be changed...
 static const gchar *conditions_str[24][13] = {
 /* TRANSLATOR: If you want to know what "blowing" "shallow" "partial"
  * etc means, you can go to http://www.weather.com/glossary/ and

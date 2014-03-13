@@ -163,7 +163,8 @@ typedef enum { /*< underscore_name=gweather_sky >*/
 
 const gchar * gweather_sky_to_string (GWeatherSky sky);
 
-typedef enum { /*< underscore_name=gweather_phenomenon >*/
+/*
+typedef enum { //< underscore_name=gweather_phenomenon >
     GWEATHER_PHENOMENON_INVALID = -1,
 
     GWEATHER_PHENOMENON_NONE,
@@ -197,7 +198,7 @@ typedef enum { /*< underscore_name=gweather_phenomenon >*/
     GWEATHER_PHENOMENON_LAST
 } GWeatherConditionPhenomenon;
 
-typedef enum { /*< underscore_name=gweather_qualifier >*/
+typedef enum { //< underscore_name=gweather_qualifier >
     GWEATHER_QUALIFIER_INVALID = -1,
 
     GWEATHER_QUALIFIER_NONE,
@@ -218,12 +219,84 @@ typedef enum { /*< underscore_name=gweather_qualifier >*/
 
     GWEATHER_QUALIFIER_LAST
 } GWeatherConditionQualifier;
+*/
+
+typedef enum { /*< underscore_name=gweather_intensity >*/
+  GWEATHER_INTENSITY_NONE,
+
+  GWEATHER_INTENSITY_LIGHT,
+  GWEATHER_INTENSITY_MODERATE,
+  GWEATHER_INTENSITY_HEAVY,
+  GWEATHER_INTENSITY_VICINITY,
+  
+  GWEATHER_INTENSITY_LAST
+} GWeatherConditionIntensity;
+
+typedef enum { /*< underscore_name=gweather_descriptor >*/
+  GWEATHER_DESCRIPTOR_NONE,
+  
+  GWEATHER_DESCRIPTOR_SHALLOW,
+  GWEATHER_DESCRIPTOR_PARTIAL,
+  GWEATHER_DESCRIPTOR_PATCHES,
+  GWEATHER_DESCRIPTOR_LOW_DRIFTING,
+  GWEATHER_DESCRIPTOR_BLOWING,
+  GWEATHER_DESCRIPTOR_SHOWERS,
+  GWEATHER_DESCRIPTOR_THUNDERSTORM,
+  GWEATHER_DESCRIPTOR_FREEZING,
+
+  GWEATHER_DESCRIPTOR_LAST
+} GWeatherConditionDescriptor;
+
+typedef enum { /*< underscore_name=gweather_precipitation >*/
+  GWEATHER_PRECIPITATION_NONE,
+
+  GWEATHER_PRECIPITATION_DRIZZLE,
+  GWEATHER_PRECIPITATION_RAIN,
+  GWEATHER_PRECIPITATION_SNOW,
+  GWEATHER_PRECIPITATION_SNOW_GRAINS,
+  GWEATHER_PRECIPITATION_ICE_CRYSTALS,
+  GWEATHER_PRECIPITATION_ICE_PELLETS,
+  GWEATHER_PRECIPITATION_HAIL,
+  GWEATHER_PRECIPITATION_SMALL_HAIL,
+  GWEATHER_PRECIPITATION_UNKNOWN,
+
+  GWEATHER_PRECIPITATION_LAST
+} GWeatherConditionPrecipitation;
+
+typedef enum { /*< underscore_name=gweather_obscuration >*/
+  GWEATHER_OBSCURATION_NONE,
+
+  GWEATHER_OBSCURATION_MIST,
+  GWEATHER_OBSCURATION_FOG,
+  GWEATHER_OBSCURATION_SMOKE,
+  GWEATHER_OBSCURATION_VOLCANIC_ASH,
+  GWEATHER_OBSCURATION_WIDESPREAD_DUST,
+  GWEATHER_OBSCURATION_SAND,
+  GWEATHER_OBSCURATION_HAZE,
+  GWEATHER_OBSCURATION_SPRAY,
+
+  GWEATHER_OBSCURATION_LAST
+
+} GWeatherConditionObscuration;
+
+typedef enum { /*< underscore_name=gweather_other >*/
+  GWEATHER_OTHER_NONE,
+
+  GWEATHER_OTHER_DUST_WHIRLS,
+  GWEATHER_OTHER_SQUALL,
+  GWEATHER_OTHER_SANDSTORM,
+  GWEATHER_OTHER_FUNNEL_CLOUD,
+  GWEATHER_OTHER_TORNADO,
+
+  GWEATHER_OTHER_LAST
+} GWeatherConditionOther;
 
 typedef gdouble GWeatherMoonPhase;
 typedef gdouble GWeatherMoonLatitude;
 
 gboolean gweather_info_get_value_update		(GWeatherInfo *info, time_t *value);
 gboolean gweather_info_get_value_sky		(GWeatherInfo *info, GWeatherSky *sky);
+// TODO: change this
 gboolean gweather_info_get_value_conditions	(GWeatherInfo *info, GWeatherConditionPhenomenon *phenomenon, GWeatherConditionQualifier *qualifier);
 gboolean gweather_info_get_value_temp		(GWeatherInfo *info, GWeatherTemperatureUnit unit, gdouble *value);
 gboolean gweather_info_get_value_temp_min	(GWeatherInfo *info, GWeatherTemperatureUnit unit, gdouble *value);
@@ -241,8 +314,14 @@ gboolean gweather_info_get_upcoming_moonphases  (GWeatherInfo *info, time_t *pha
 typedef struct _GWeatherConditions GWeatherConditions;
 struct _GWeatherConditions {
     gboolean significant;
-    GWeatherConditionPhenomenon phenomenon;
-    GWeatherConditionQualifier qualifier;
+    //GWeatherConditionPhenomenon phenomenon;
+    //GWeatherConditionQualifier qualifier;
+
+    GWeatherConditionIntensity intensity;
+    GWeatherConditionDescriptor descriptor;
+    GWeatherConditionPrecipitation precipitation;
+    GWeatherConditionObscuration obscuration;
+    GWeatherConditionOther other;
 };
 
 const gchar * gweather_conditions_to_string (GWeatherConditions *conditions);

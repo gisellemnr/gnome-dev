@@ -1080,59 +1080,58 @@ gweather_location_format_one_deserialize (GWeatherLocation *world,
      * a location
      */
     if (!latlon_valid)
-	return candidates ? _gweather_location_new_detached (candidates->data, name, FALSE, 0, 0) : NULL;
+    	return candidates ? _gweather_location_new_detached (candidates->data, name, FALSE, 0, 0) : NULL;
 
     found = NULL;
 
     /* First try weather stations directly. */
     for (l = candidates; l; l = l->next) {
-	GWeatherLocation *ws, *city;
-
-	ws = l->data;
-
-	if (!ws->latlon_valid ||
-	    ABS(ws->latitude - latitude) >= EPSILON ||
-	    ABS(ws->longitude - longitude) >= EPSILON)
-	    /* Not what we're looking for... */
-	    continue;
-
-	/* If we can't check for the latitude and longitude
-	   of the parent, we just assume we found what we needed
-	*/
-	if ((!parent_latlon_valid || !ws->parent || !ws->parent->latlon_valid) ||
-	    (ABS(parent_latitude - ws->parent->latitude) < EPSILON &&
-	     ABS(parent_longitude - ws->parent->longitude) < EPSILON)) {
-
-	    /* Found! Now check which one we want (ws or city) and the name... */
-	    if (is_city)
-		city = ws->parent;
-	    else
-		city = ws;
-
-	    if (city == NULL) {
-		/* Oops! There is no city for this weather station! */
-		continue;
-	    }
-
-	    if (g_strcmp0 (name, city->name) == 0)
-		found = gweather_location_ref (city);
-	    else
-		found = _gweather_location_new_detached (ws, name, TRUE, latitude, longitude);
-
-	    break;
-	}
+			GWeatherLocation *ws, *city;
+    
+			ws = l->data;
+    
+			if (!ws->latlon_valid ||
+			    ABS(ws->latitude - latitude) >= EPSILON ||
+			    ABS(ws->longitude - longitude) >= EPSILON)
+			    /* Not what we're looking for... */
+			    continue;
+    
+			/* If we can't check for the latitude and longitude
+			   of the parent, we just assume we found what we needed
+			*/
+			if ((!parent_latlon_valid || !ws->parent || !ws->parent->latlon_valid) ||
+			    (ABS(parent_latitude - ws->parent->latitude) < EPSILON &&
+			     ABS(parent_longitude - ws->parent->longitude) < EPSILON)) {
+    
+			    /* Found! Now check which one we want (ws or city) and the name... */
+			    if (is_city)
+				city = ws->parent;
+			    else
+				city = ws;
+    
+			    if (city == NULL) {
+				/* Oops! There is no city for this weather station! */
+				continue;
+			    }
+    
+			    if (g_strcmp0 (name, city->name) == 0)
+				found = gweather_location_ref (city);
+			    else
+				found = _gweather_location_new_detached (ws, name, TRUE, latitude, longitude);
+    
+			    break;
+			}
     }
 
     if (found)
-	return found;
+	    return found;
 
     /* No weather station matches the serialized data, let's pick
        one at random from the station code list */
     if (candidates)
-	return _gweather_location_new_detached (candidates->data,
-						name, TRUE, latitude, longitude);
+	    return _gweather_location_new_detached (candidates->data, name, TRUE, latitude, longitude);
     else
-	return NULL;
+	    return NULL;
 }
 
 /**
@@ -1188,15 +1187,31 @@ gweather_location_deserialize (GWeatherLocation *world,
     /* This is not a critical error, because the serialization format
        is not public, so apps can't check this before calling */
     if (!g_variant_is_of_type (serialized, G_VARIANT_TYPE ("(uv)")))
-	return NULL;
+    	return NULL;
 
     g_variant_get (serialized, "(uv)", &format, &v);
 
     if (format == FORMAT)
-	loc = gweather_location_format_one_deserialize (world, v);
+	    loc = gweather_location_format_one_deserialize (world, v);
     else
-	loc = NULL;
+	    loc = NULL;
 
     g_variant_unref (v);
     return loc;
 }
+
+/**
+ * gweather_location_guess:
+ *
+ * Tries to guess the location using GeoClue (if available) or hostip.
+ *
+ * Returns: a location.
+ */
+/*
+GWeatherLocation *
+gweather_location_guess ()
+{
+  // TODO: implement a helper for gclue (see empathy code) and use it here to
+  // get the location.
+}
+*/

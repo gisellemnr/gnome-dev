@@ -40,6 +40,16 @@ enum {
     RE_NUM
 };
 
+enum {
+    COND_INTE_RE,
+    COND_DESC_RE,
+    COND_PREC_RE,
+    COND_OBSC_RE,
+    COND_OTHR_RE,
+
+    COND_RE_NUM
+};
+
 /* Return time of weather report as secs since epoch UTC */
 static time_t
 make_time (gint utcDate, gint utcHour, gint utcMin)
@@ -313,34 +323,170 @@ static const int importance_scale[] = {
     50, /* dust whirls */
 };
 
+// TODO: redefine condition "importantness"
 static gboolean
 condition_more_important (GWeatherConditions *which,
 			  GWeatherConditions *than)
 {
     if (!than->significant)
-	return TRUE;
+	    return TRUE;
     if (!which->significant)
-	return FALSE;
+	    return FALSE;
 
-    if (importance_scale[than->phenomenon] <
-	importance_scale[which->phenomenon])
-	return TRUE;
+    if (importance_scale[than->phenomenon] < importance_scale[which->phenomenon])
+	    return TRUE;
 
     return FALSE;
 }
+
+// According to: http://weather.unisys.com/wxp/Appendices/Formats/METAR.html and wikipedia :)
+#define COND_INTE_RE_STR "(-|\\+|VC|)"
+#define COND_DESC_RE_STR "(MI|PR|BC|DR|BL|SH|TS|FZ)"
+#define COND_PREC_RE_STR "(DZ|RA|SN|SG|IC|PL|GR|GS|UP)"
+#define COND_OBSC_RE_STR "(BR|FG|FU|VA|DU|SA|HZ|PY)"
+#define COND_OTHR_RE_STR "(PO|SQ|\\+?FC|SS)"
+#define COND_RE_STR  (COND_INT_RE_STR+"?"+COND_DESC_RE_STR+"?"+COND_PREC_RE_STR+"?"+COND_OBSC_RE_STR+"?"+COND_OTHR_RE_STR+"?")
 
 static void
 metar_tok_cond (gchar *tokp, GWeatherInfo *info)
 {
     GWeatherInfoPrivate *priv;
     GWeatherConditions new_cond;
-    gchar squal[3], sphen[4];
-    gchar *pphen;
+    //gchar squal[3], sphen[4], 
+    gchar substr[12], intensity[3], descriptor[3], precipitation[3], obscuration[3], other[4];
+    //gchar *pphen, substr;
+    regex_t cond_re[COND_RE_NUM];
+    regmatch_t cond_rm[COND_RE_NUM];
+    gint i, start;
+    
+    printf("***** tokp: %s\n", tokp);
+    
+    regcomp (&cond_re[COND_INTE_RE], COND_INTE_RE_STR, REG_EXTENDED);
+    regcomp (&cond_re[COND_DESC_RE], COND_DESC_RE_STR, REG_EXTENDED);
+    regcomp (&cond_re[COND_PREC_RE], COND_PREC_RE_STR, REG_EXTENDED);
+    regcomp (&cond_re[COND_OBSC_RE], COND_OBSC_RE_STR, REG_EXTENDED);
+    regcomp (&cond_re[COND_OTHR_RE], COND_OTHR_RE_STR, REG_EXTENDED);
+
+    start = 0;
+    for(i = 0; i < COND_RE_NUM; i++) {
+      strcpy(substr, tokp + start); 
+      if(regexec(&cond_re[i], substr, 1, &cond_rm[i], 0) == 0) {
+        cond_rm[i].rm_so += start;
+        cond_rm[i].rm_eo += start;
+        start = cond_rm[i].rm_eo + 1;
+      }
+    }
 
     priv = info->priv;
+    
+    // rm_so and rm_eo are -1 in case of no match.
 
+    if (cond_rm[COND_INTE_RE].rm_so != -1) {
+      strncpy(intensity, tokp + cond_rm[COND_INTE_RE].rm_so, cond_rm[COND_INTE_RE].rm_eo);
+      if ( !strcmp(intensity, "-") ) 
+        new_cond.intensity = GWEATHER_INTENSITY_LIGHT;
+      else if ( !strcmp(intensity, "") )
+        new_cond.intensity = GWEATHER_INTENSITY_MODERATE;
+      else if ( !strcmp(intensity, "+") ) 
+        new_cond.intensity = GWEATHER_INTENSITY_HEAVY;
+      else if ( !strcmp(intensity, "VC") )
+        new_cond.intensity = GWEATHER_INTENSITY_VICINITY;
+      else return;
+    } else {
+      new_cond.intensity = GWEATHER_INTENSITY_NONE;
+    }
+
+    if (cond_rm[COND_DESC_RE].rm_so != -1) {
+      strncpy(descriptor, tokp + cond_rm[COND_DESC_RE].rm_so, cond_rm[COND_DESC_RE].rm_eo);
+      if ( !strcmp(descriptor, "MI") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_SHALLOW;
+      else if ( !strcmp(descriptor, "PR") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_PARTIAL;
+      else if ( !strcmp(descriptor, "BC") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_PATCHES;
+      else if ( !strcmp(descriptor, "DR") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_LOW_DRIFTING;
+      else if ( !strcmp(descriptor, "BL") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_BLOWING;
+      else if ( !strcmp(descriptor, "SH") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_SHOWERS;
+      else if ( !strcmp(descriptor, "TS") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_THUNDERSTORM;
+      else if ( !strcmp(descriptor, "FZ") )
+        new_cond.descriptor = GWEATHER_DESCRIPTOR_FREEZING;
+      else return;
+    } else {
+      new_cond.descriptor = GWEATHER_DESCRIPTOR_NONE;
+    }
+
+    if (cond_rm[COND_PREC_RE].rm_so != -1) {
+      strncpy(precipitation, tokp + cond_rm[COND_PREC_RE].rm_so, cond_rm[COND_PREC_RE].rm_eo);
+      if ( !strcmp(precipitation, "DZ") ) 
+        new_cond.precipitation = GWEATHER_PRECIPITATION_DRIZZLE;
+      else if ( !strcmp(precipitation, "RA") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_RAIN;
+      else if ( !strcmp(precipitation, "SN") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_SNOW;
+      else if ( !strcmp(precipitation, "SG") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_SNOW_GRAINS;
+      else if ( !strcmp(precipitation, "IC") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_ICE_CRYSTALS;
+      else if ( !strcmp(precipitation, "PL") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_ICE_PELLETS;
+      else if ( !strcmp(precipitation, "GR") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_HAIL;
+      else if ( !strcmp(precipitation, "GS") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_SMALL_HAIL;
+      else if ( !strcmp(precipitation, "UP") )
+        new_cond.precipitation = GWEATHER_PRECIPITATION_UNKNOWN;
+      else return;
+    } else {
+      new_cond.precipitation = GWEATHER_PRECIPITATION_NONE;
+    }
+
+    if (cond_rm[COND_OBSC_RE].rm_so != -1) {
+      strncpy(obscuration, tokp + cond_rm[COND_OBSC_RE].rm_so, cond_rm[COND_OBSC_RE].rm_eo);
+      if ( !strcmp(obscuration, "BR") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_MIST;
+      else if ( !strcmp(obscuration, "FG") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_FOG;
+      else if ( !strcmp(obscuration, "FU") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_SMOKE;
+      else if ( !strcmp(obscuration, "VA") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_VOLCANIC_ASH;
+      else if ( !strcmp(obscuration, "DU") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_WIDESPREAD_DUST;
+      else if ( !strcmp(obscuration, "SA") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_SAND;
+      else if ( !strcmp(obscuration, "HZ") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_HAZE;
+      else if ( !strcmp(obscuration, "PY") )
+        new_cond.obscuration = GWEATHER_OBSCURATION_SPRAY;
+      else return;
+    } else {
+      new_cond.obscuration = GWEATHER_OBSCURATION_NONE;
+    }
+
+    if (cond_rm[COND_OTHR_RE].rm_so != -1) {
+      strncpy(other, tokp + cond_rm[COND_OTHR_RE].rm_so, cond_rm[COND_OTHR_RE].rm_eo);
+      if( !strcmp(other, "PO") ) 
+        new_cond.other = GWEATHER_OTHER_DUST_WHIRLS;
+      else if( !strcmp(other, "SQ") ) 
+        new_cond.other = GWEATHER_OTHER_SQUALL;
+      else if( !strcmp(other, "+FC") ) 
+        new_cond.other = GWEATHER_OTHER_TORNADO;
+      else if( !strcmp(other, "FC") ) 
+        new_cond.other = GWEATHER_OTHER_FUNNEL_CLOUD;
+      else if( !strcmp(other, "SS") ) 
+        new_cond.other = GWEATHER_OTHER_SANDSTORM;
+      else return;
+    } else {
+      new_cond.other = GWEATHER_OTHER_NONE;
+    }
+
+    /*
     if ((strlen (tokp) > 3) && ((*tokp == '+') || (*tokp == '-')))
-        ++tokp;   /* FIX */
+        ++tokp;   // FIX /
 
     if ((*tokp == '+') || (*tokp == '-'))
         pphen = tokp + 1;
@@ -356,8 +502,10 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
     memset (sphen, 0, sizeof (sphen));
     strncpy (sphen, pphen, sizeof (sphen));
     sphen[sizeof (sphen)-1] = '\0';
+    */
 
     /* Defaults */
+    /*
     new_cond.qualifier = GWEATHER_QUALIFIER_NONE;
     new_cond.phenomenon = GWEATHER_PHENOMENON_NONE;
     new_cond.significant = FALSE;
@@ -439,12 +587,17 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
     } else {
         return;
     }
+    */
 
-    if ((new_cond.qualifier != GWEATHER_QUALIFIER_NONE) || (new_cond.phenomenon != GWEATHER_PHENOMENON_NONE))
+    if ((new_cond.intensity != GWEATHER_INTENSITY_NONE) || 
+        (new_cond.descriptor != GWEATHER_DESCRIPTOR_NONE) ||
+        (new_cond.precipitation != GWEATHER_PRECIPITATION_NONE) ||
+        (new_cond.obscuration != GWEATHER_OBSCURATION_NONE) ||
+        (new_cond.other != GWEATHER_OTHER_NONE) )
         new_cond.significant = TRUE;
 
     if (condition_more_important (&new_cond, &priv->cond))
-	priv->cond = new_cond;
+	    priv->cond = new_cond;
 }
 
 #define TIME_RE_STR  "([0-9]{6})Z"
@@ -452,7 +605,7 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
 #define VIS_RE_STR   "((([0-9]?[0-9])|(M?([12] )?([1357]/1?[0-9])))SM)|" \
     "([0-9]{4}(N|NE|E|SE|S|SW|W|NW( [0-9]{4}(N|NE|E|SE|S|SW|W|NW))?)?)|" \
     "CAVOK"
-#define COND_RE_STR  "(-|\\+)?(VC|MI|BC|PR|TS|BL|SH|DR|FZ)?(DZ|RA|SN|SG|IC|PE|GR|GS|UP|BR|FG|FU|VA|SA|HZ|PY|DU|SQ|SS|DS|PO|\\+?FC)"
+//#define COND_RE_STR  "(-|\\+)?(VC|MI|BC|PR|TS|BL|SH|DR|FZ)?(DZ|RA|SN|SG|IC|PE|GR|GS|UP|BR|FG|FU|VA|SA|HZ|PY|DU|SQ|SS|DS|PO|\\+?FC)"
 #define CLOUD_RE_STR "((CLR|BKN|SCT|FEW|OVC|SKC|NSC)([0-9]{3}|///)?(CB|TCU|///)?)"
 #define TEMP_RE_STR  "(M?[0-9][0-9])/(M?(//|[0-9][0-9])?)"
 #define PRES_RE_STR  "(A|Q)([0-9]{4})"
@@ -513,40 +666,40 @@ metar_parse (gchar *metar, GWeatherInfo *info)
      */
     if (0 != (p = strstr (metar, " RMK "))) {
         *p = '\0';
-	//rmk = p + 5;   // uncomment this if RMK data becomes useful
+	      //rmk = p + 5;   // uncomment this if RMK data becomes useful
     }
 
     p = metar;
     i = TIME_RE;
     while (*p) {
 
-        i2 = RE_NUM;
-	rm2.rm_so = strlen (p);
-	rm2.rm_eo = rm2.rm_so;
+      i2 = RE_NUM;
+      rm2.rm_so = strlen (p);
+      rm2.rm_eo = rm2.rm_so;
 
-        for (i = 0; i < RE_NUM && rm2.rm_so > 0; i++) {
-	    if (0 == regexec (&metar_re[i], p, 1, &rm, 0)
-		&& rm.rm_so < rm2.rm_so)
-	    {
-	        i2 = i;
-		/* Skip leading and trailing space characters, if present.
-		   (the regular expressions include those characters to
-		   only get matches limited to whole words). */
-		if (p[rm.rm_so] == ' ') rm.rm_so++;
-		if (p[rm.rm_eo - 1] == ' ') rm.rm_eo--;
-	        rm2.rm_so = rm.rm_so;
-		rm2.rm_eo = rm.rm_eo;
-	    }
-	}
+      for (i = 0; i < RE_NUM && rm2.rm_so > 0; i++) {
+        if (0 == regexec (&metar_re[i], p, 1, &rm, 0)
+            && rm.rm_so < rm2.rm_so)
+        {
+          i2 = i;
+          /* Skip leading and trailing space characters, if present.
+             (the regular expressions include those characters to
+             only get matches limited to whole words). */
+          if (p[rm.rm_so] == ' ') rm.rm_so++;
+          if (p[rm.rm_eo - 1] == ' ') rm.rm_eo--;
+          rm2.rm_so = rm.rm_so;
+          rm2.rm_eo = rm.rm_eo;
+        }
+      }
 
-	if (i2 != RE_NUM) {
-	    tokp = g_strndup (p + rm2.rm_so, rm2.rm_eo - rm2.rm_so);
-	    metar_f[i2] (tokp, info);
-	    g_free (tokp);
-	}
+      if (i2 != RE_NUM) {
+        tokp = g_strndup (p + rm2.rm_so, rm2.rm_eo - rm2.rm_so);
+        metar_f[i2] (tokp, info);
+        g_free (tokp);
+      }
 
-	p += rm2.rm_eo;
-	p += strspn (p, " ");
+      p += rm2.rm_eo;
+      p += strspn (p, " ");
     }
     return TRUE;
 }
@@ -570,12 +723,11 @@ metar_finish (SoupSession *session, SoupMessage *msg, gpointer data)
 	    priv->network_error = TRUE;
 	else {
 	    /* Translators: %d is an error code, and %s the error string */
-	    if (msg->status_code != SOUP_STATUS_CANCELLED)
-		g_warning (_("Failed to get METAR data: %d %s.\n"),
-			   msg->status_code, msg->reason_phrase);
+	    g_warning (_("Failed to get METAR data: %d %s.\n"),
+		       msg->status_code, msg->reason_phrase);
 	}
 
-	_gweather_info_request_done (info, msg);
+	_gweather_info_request_done (info);
 	return;
     }
 
@@ -602,7 +754,7 @@ metar_finish (SoupSession *session, SoupMessage *msg, gpointer data)
     }
 
     priv->valid = success;
-    _gweather_info_request_done (info, msg);
+    _gweather_info_request_done (info);
 }
 
 /* Read current conditions and fill in info structure */
@@ -624,6 +776,7 @@ metar_start_open (GWeatherInfo *info)
 	"GET", "http://weather.noaa.gov/cgi-bin/mgetmetar.pl",
 	"cccc", loc->code,
 	NULL);
-    _gweather_info_begin_request (info, msg);
     soup_session_queue_message (priv->session, msg, metar_finish, info);
+
+    priv->requests_pending++;
 }
