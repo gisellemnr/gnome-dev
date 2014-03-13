@@ -298,29 +298,34 @@ metar_tok_temp (gchar *tokp, GWeatherInfo *info)
 static const int importance_scale[] = {
     0, /* invalid */
     0, /* none */
-    20, /* drizzle */
-    30, /* rain */
-    35, /* snow */
-    35, /* snow grains */
-    35, /* ice crystals */
-    35, /* ice pellets */
-    35, /* hail */
-    35, /* small hail */
-    20, /* unknown precipitation */
-    10, /* mist */
-    15, /* fog */
-    15, /* smoke */
-    18, /* volcanic ash */
-    18, /* sand */
-    15, /* haze */
-    15, /* spray */
-    15, /* dust */
-    40, /* squall */
-    50, /* sandstorm */
-    50, /* duststorm */
-    70, /* funnel cloud */
-    70, /* tornado */
-    50, /* dust whirls */
+    
+    // Other > Precipitation > Obscuration
+
+    20, /* drizzle */                      //precipitation
+    30, /* rain */                         //precipitation    
+    35, /* snow */                         //precipitation
+    35, /* snow grains */                  //precipitation
+    35, /* ice crystals */                 //precipitation
+    35, /* ice pellets */                  //precipitation
+    35, /* hail */                         //precipitation
+    35, /* small hail */                   //precipitation
+    20, /* unknown precipitation */        //precipitation
+    
+    10, /* mist */                         //obscuration
+    15, /* fog */                          //obscuration
+    15, /* smoke */                        //obscuration
+    18, /* volcanic ash */                 //obscuration
+    18, /* sand */                         //obscuration
+    15, /* haze */                         //obscuration
+    15, /* spray */                        //obscuration
+    15, /* dust */                         //obscuration
+
+    40, /* squall */                       //other
+    50, /* sandstorm */                    //other
+    50, /* duststorm */                    //other
+    70, /* funnel cloud */                 //other
+    70, /* tornado */                      //other
+    50, /* dust whirls */                  //other
 };
 
 // TODO: redefine condition "importantness"
@@ -352,14 +357,12 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
 {
     GWeatherInfoPrivate *priv;
     GWeatherConditions new_cond;
-    //gchar squal[3], sphen[4], 
     gchar substr[12], intensity[3], descriptor[3], precipitation[3], obscuration[3], other[4];
-    //gchar *pphen, substr;
     regex_t cond_re[COND_RE_NUM];
     regmatch_t cond_rm[COND_RE_NUM];
     gint i, start;
     
-    printf("***** tokp: %s\n", tokp);
+    //printf("***** tokp: %s\n", tokp);
     
     regcomp (&cond_re[COND_INTE_RE], COND_INTE_RE_STR, REG_EXTENDED);
     regcomp (&cond_re[COND_DESC_RE], COND_DESC_RE_STR, REG_EXTENDED);
@@ -484,111 +487,6 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
       new_cond.other = GWEATHER_OTHER_NONE;
     }
 
-    /*
-    if ((strlen (tokp) > 3) && ((*tokp == '+') || (*tokp == '-')))
-        ++tokp;   // FIX /
-
-    if ((*tokp == '+') || (*tokp == '-'))
-        pphen = tokp + 1;
-    else if (strlen (tokp) < 4)
-        pphen = tokp;
-    else
-        pphen = tokp + 2;
-
-    memset (squal, 0, sizeof (squal));
-    strncpy (squal, tokp, pphen - tokp);
-    squal[pphen - tokp] = 0;
-
-    memset (sphen, 0, sizeof (sphen));
-    strncpy (sphen, pphen, sizeof (sphen));
-    sphen[sizeof (sphen)-1] = '\0';
-    */
-
-    /* Defaults */
-    /*
-    new_cond.qualifier = GWEATHER_QUALIFIER_NONE;
-    new_cond.phenomenon = GWEATHER_PHENOMENON_NONE;
-    new_cond.significant = FALSE;
-
-    if (!strcmp (squal, "")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_MODERATE;
-    } else if (!strcmp (squal, "-")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_LIGHT;
-    } else if (!strcmp (squal, "+")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_HEAVY;
-    } else if (!strcmp (squal, "VC")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_VICINITY;
-    } else if (!strcmp (squal, "MI")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_SHALLOW;
-    } else if (!strcmp (squal, "BC")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_PATCHES;
-    } else if (!strcmp (squal, "PR")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_PARTIAL;
-    } else if (!strcmp (squal, "TS")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_THUNDERSTORM;
-    } else if (!strcmp (squal, "BL")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_BLOWING;
-    } else if (!strcmp (squal, "SH")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_SHOWERS;
-    } else if (!strcmp (squal, "DR")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_DRIFTING;
-    } else if (!strcmp (squal, "FZ")) {
-        new_cond.qualifier = GWEATHER_QUALIFIER_FREEZING;
-    } else {
-        return;
-    }
-
-    if (!strcmp (sphen, "DZ")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_DRIZZLE;
-    } else if (!strcmp (sphen, "RA")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_RAIN;
-    } else if (!strcmp (sphen, "SN")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SNOW;
-    } else if (!strcmp (sphen, "SG")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SNOW_GRAINS;
-    } else if (!strcmp (sphen, "IC")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_ICE_CRYSTALS;
-    } else if (!strcmp (sphen, "PL")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_ICE_PELLETS;
-    } else if (!strcmp (sphen, "GR")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_HAIL;
-    } else if (!strcmp (sphen, "GS")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SMALL_HAIL;
-    } else if (!strcmp (sphen, "UP")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_UNKNOWN_PRECIPITATION;
-    } else if (!strcmp (sphen, "BR")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_MIST;
-    } else if (!strcmp (sphen, "FG")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_FOG;
-    } else if (!strcmp (sphen, "FU")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SMOKE;
-    } else if (!strcmp (sphen, "VA")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_VOLCANIC_ASH;
-    } else if (!strcmp (sphen, "SA")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SAND;
-    } else if (!strcmp (sphen, "HZ")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_HAZE;
-    } else if (!strcmp (sphen, "PY")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SPRAY;
-    } else if (!strcmp (sphen, "DU")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_DUST;
-    } else if (!strcmp (sphen, "SQ")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SQUALL;
-    } else if (!strcmp (sphen, "SS")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_SANDSTORM;
-    } else if (!strcmp (sphen, "DS")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_DUSTSTORM;
-    } else if (!strcmp (sphen, "PO")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_DUST_WHIRLS;
-    } else if (!strcmp (sphen, "+FC")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_TORNADO;
-    } else if (!strcmp (sphen, "FC")) {
-        new_cond.phenomenon = GWEATHER_PHENOMENON_FUNNEL_CLOUD;
-    } else {
-        return;
-    }
-    */
-
     if ((new_cond.intensity != GWEATHER_INTENSITY_NONE) || 
         (new_cond.descriptor != GWEATHER_DESCRIPTOR_NONE) ||
         (new_cond.precipitation != GWEATHER_PRECIPITATION_NONE) ||
@@ -605,7 +503,6 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
 #define VIS_RE_STR   "((([0-9]?[0-9])|(M?([12] )?([1357]/1?[0-9])))SM)|" \
     "([0-9]{4}(N|NE|E|SE|S|SW|W|NW( [0-9]{4}(N|NE|E|SE|S|SW|W|NW))?)?)|" \
     "CAVOK"
-//#define COND_RE_STR  "(-|\\+)?(VC|MI|BC|PR|TS|BL|SH|DR|FZ)?(DZ|RA|SN|SG|IC|PE|GR|GS|UP|BR|FG|FU|VA|SA|HZ|PY|DU|SQ|SS|DS|PO|\\+?FC)"
 #define CLOUD_RE_STR "((CLR|BKN|SCT|FEW|OVC|SKC|NSC)([0-9]{3}|///)?(CB|TCU|///)?)"
 #define TEMP_RE_STR  "(M?[0-9][0-9])/(M?(//|[0-9][0-9])?)"
 #define PRES_RE_STR  "(A|Q)([0-9]{4})"
