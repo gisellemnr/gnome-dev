@@ -205,16 +205,16 @@ gweather_conditions_to_string (GWeatherConditions *cond)
     const gchar *str;
 
     if (!cond->significant) {
-	return "-";
+	    return "-";
     } else {
-	if (cond->phenomenon > GWEATHER_PHENOMENON_INVALID &&
-	    cond->phenomenon < GWEATHER_PHENOMENON_LAST &&
-	    cond->qualifier > GWEATHER_QUALIFIER_INVALID &&
-	    cond->qualifier < GWEATHER_QUALIFIER_LAST)
-	    str = _(conditions_str[(int)cond->phenomenon][(int)cond->qualifier]);
-	else
-	    str = C_("sky conditions", "Invalid");
-	return (strlen (str) > 0) ? str : "-";
+			if (cond->phenomenon > GWEATHER_PHENOMENON_INVALID &&
+			    cond->phenomenon < GWEATHER_PHENOMENON_LAST &&
+			    cond->qualifier > GWEATHER_QUALIFIER_INVALID &&
+			    cond->qualifier < GWEATHER_QUALIFIER_LAST)
+			    str = _(conditions_str[(int)cond->phenomenon][(int)cond->qualifier]);
+			else
+			    str = C_("sky conditions", "Invalid");
+			return (strlen (str) > 0) ? str : "-";
     }
 }
 
@@ -1680,7 +1680,7 @@ gweather_info_get_value_sky (GWeatherInfo *info, GWeatherSky *sky)
 gboolean
 gweather_info_get_value_conditions (GWeatherInfo *info,
                                     GWeatherConditionIntensity *intensity, 
-                                    GWeatherConditionDescriptor *descriptor
+                                    GWeatherConditionDescriptor *descriptor,
                                     GWeatherConditionPrecipitation *precipitation,
                                     GWeatherConditionObscuration *obscuration,
                                     GWeatherConditionOther *other)
