@@ -294,41 +294,44 @@ metar_tok_temp (gchar *tokp, GWeatherInfo *info)
 }
 
 /* How "important" are the conditions to be reported to the user.
-   Indexed by GWeatherConditionPhenomenon */
-static const int importance_scale[] = {
-    0, /* invalid */
-    0, /* none */
-    
-    // Other > Precipitation > Obscuration
-
-    20, /* drizzle */                      //precipitation
-    30, /* rain */                         //precipitation    
-    35, /* snow */                         //precipitation
-    35, /* snow grains */                  //precipitation
-    35, /* ice crystals */                 //precipitation
-    35, /* ice pellets */                  //precipitation
-    35, /* hail */                         //precipitation
-    35, /* small hail */                   //precipitation
-    20, /* unknown precipitation */        //precipitation
-    
-    10, /* mist */                         //obscuration
-    15, /* fog */                          //obscuration
-    15, /* smoke */                        //obscuration
-    18, /* volcanic ash */                 //obscuration
-    18, /* sand */                         //obscuration
-    15, /* haze */                         //obscuration
-    15, /* spray */                        //obscuration
-    15, /* dust */                         //obscuration
-
-    40, /* squall */                       //other
-    50, /* sandstorm */                    //other
-    50, /* duststorm */                    //other
-    70, /* funnel cloud */                 //other
-    70, /* tornado */                      //other
-    50, /* dust whirls */                  //other
+   Indexed by GWeatherConditionPrecipitation */
+static const int importance_scale_precipitation[] = {
+  0, /* invalid */
+  0, /* none */
+  20, /* drizzle */
+  30, /* rain */
+  35, /* snow */
+  35, /* snow grains */
+  35, /* ice crystals */
+  35, /* ice pellets */
+  35, /* hail */
+  35, /* small hail */
+  20, /* unknown */
+};
+/* Indexed by GWeatherConditionObscuration */
+static const int importance_scale_obscuration[] = {
+  0, /* invalid */
+  0, /* none */
+  10, /* mist */
+  15, /* fog */
+  15, /* smoke */
+  18, /* volcanic ash */
+  15, /* widespread dust */
+  18, /* sand */
+  15, /* haze */
+  15, /* spray */
+};
+/* Indexed by GWeatherConditionOther */
+static const int importance_scale_other[] = {
+  0, /* invalid */
+  0, /* none */
+  50, /* dust whirls */
+  40, /* squall */
+  50, /* sandstorm */
+  70, /* funnel cloud */
+  70, /* tornado */
 };
 
-// TODO: redefine condition "importantness"
 static gboolean
 condition_more_important (GWeatherConditions *which,
 			  GWeatherConditions *than)
@@ -338,8 +341,20 @@ condition_more_important (GWeatherConditions *which,
     if (!which->significant)
 	    return FALSE;
 
-    if (importance_scale[than->phenomenon] < importance_scale[which->phenomenon])
-	    return TRUE;
+    // Other > Precipitation > Obscuration
+    if (importance_scale_other[which->other] > importance_scale_other[than->other]) 
+      return TRUE;
+    else if (importance_scale_other[which->other] == importance_scale_other[than->other]) {
+      if (importance_scale_precipitation[which->precipitation] > importance_scale_precipitation[than->precipitation])
+        return TRUE;
+      else if (importance_scale_precipitation[which->precipitation] == importance_scale_precipitation[than->precipitation]) {
+        if (importance_scale_obscuration[which->obscuration] > importance_scale_obscuration[than->obscuration])
+          return TRUE;
+        else return FALSE;
+      }
+      else return FALSE;
+    }
+    else return FALSE;
 
     return FALSE;
 }
@@ -350,7 +365,7 @@ condition_more_important (GWeatherConditions *which,
 #define COND_PREC_RE_STR "(DZ|RA|SN|SG|IC|PL|GR|GS|UP)"
 #define COND_OBSC_RE_STR "(BR|FG|FU|VA|DU|SA|HZ|PY)"
 #define COND_OTHR_RE_STR "(PO|SQ|\\+?FC|SS)"
-#define COND_RE_STR  (COND_INT_RE_STR+"?"+COND_DESC_RE_STR+"?"+COND_PREC_RE_STR+"?"+COND_OBSC_RE_STR+"?"+COND_OTHR_RE_STR+"?")
+#define COND_RE_STR  COND_INTE_RE_STR+"?"+COND_DESC_RE_STR+"?"+COND_PREC_RE_STR+"?"+COND_OBSC_RE_STR+"?"+COND_OTHR_RE_STR+"?"
 
 static void
 metar_tok_cond (gchar *tokp, GWeatherInfo *info)

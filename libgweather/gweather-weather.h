@@ -250,7 +250,7 @@ gboolean gweather_info_get_value_update		(GWeatherInfo *info, time_t *value);
 gboolean gweather_info_get_value_sky		(GWeatherInfo *info, GWeatherSky *sky);
 gboolean gweather_info_get_value_conditions	(GWeatherInfo *info, 
                                              GWeatherConditionIntensity *intensity, 
-                                             GWeatherConditionDescriptor *descriptor
+                                             GWeatherConditionDescriptor *descriptor,
                                              GWeatherConditionPrecipitation *precipitation,
                                              GWeatherConditionObscuration *obscuration,
                                              GWeatherConditionOther *other);
