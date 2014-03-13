@@ -163,65 +163,9 @@ typedef enum { /*< underscore_name=gweather_sky >*/
 
 const gchar * gweather_sky_to_string (GWeatherSky sky);
 
-/*
-typedef enum { //< underscore_name=gweather_phenomenon >
-    GWEATHER_PHENOMENON_INVALID = -1,
-
-    GWEATHER_PHENOMENON_NONE,
-
-    GWEATHER_PHENOMENON_DRIZZLE,
-    GWEATHER_PHENOMENON_RAIN,
-    GWEATHER_PHENOMENON_SNOW,
-    GWEATHER_PHENOMENON_SNOW_GRAINS,
-    GWEATHER_PHENOMENON_ICE_CRYSTALS,
-    GWEATHER_PHENOMENON_ICE_PELLETS,
-    GWEATHER_PHENOMENON_HAIL,
-    GWEATHER_PHENOMENON_SMALL_HAIL,
-    GWEATHER_PHENOMENON_UNKNOWN_PRECIPITATION,
-
-    GWEATHER_PHENOMENON_MIST,
-    GWEATHER_PHENOMENON_FOG,
-    GWEATHER_PHENOMENON_SMOKE,
-    GWEATHER_PHENOMENON_VOLCANIC_ASH,
-    GWEATHER_PHENOMENON_SAND,
-    GWEATHER_PHENOMENON_HAZE,
-    GWEATHER_PHENOMENON_SPRAY,
-    GWEATHER_PHENOMENON_DUST,
-
-    GWEATHER_PHENOMENON_SQUALL,
-    GWEATHER_PHENOMENON_SANDSTORM,
-    GWEATHER_PHENOMENON_DUSTSTORM,
-    GWEATHER_PHENOMENON_FUNNEL_CLOUD,
-    GWEATHER_PHENOMENON_TORNADO,
-    GWEATHER_PHENOMENON_DUST_WHIRLS,
-
-    GWEATHER_PHENOMENON_LAST
-} GWeatherConditionPhenomenon;
-
-typedef enum { //< underscore_name=gweather_qualifier >
-    GWEATHER_QUALIFIER_INVALID = -1,
-
-    GWEATHER_QUALIFIER_NONE,
-
-    GWEATHER_QUALIFIER_VICINITY,
-
-    GWEATHER_QUALIFIER_LIGHT,
-    GWEATHER_QUALIFIER_MODERATE,
-    GWEATHER_QUALIFIER_HEAVY,
-    GWEATHER_QUALIFIER_SHALLOW,
-    GWEATHER_QUALIFIER_PATCHES,
-    GWEATHER_QUALIFIER_PARTIAL,
-    GWEATHER_QUALIFIER_THUNDERSTORM,
-    GWEATHER_QUALIFIER_BLOWING,
-    GWEATHER_QUALIFIER_SHOWERS,
-    GWEATHER_QUALIFIER_DRIFTING,
-    GWEATHER_QUALIFIER_FREEZING,
-
-    GWEATHER_QUALIFIER_LAST
-} GWeatherConditionQualifier;
-*/
-
 typedef enum { /*< underscore_name=gweather_intensity >*/
+  GWEATHER_INTENSITY_INVALID = -1,
+  
   GWEATHER_INTENSITY_NONE,
 
   GWEATHER_INTENSITY_LIGHT,
@@ -233,6 +177,8 @@ typedef enum { /*< underscore_name=gweather_intensity >*/
 } GWeatherConditionIntensity;
 
 typedef enum { /*< underscore_name=gweather_descriptor >*/
+  GWEATHER_DESCRIPTOR_INVALID = -1,
+  
   GWEATHER_DESCRIPTOR_NONE,
   
   GWEATHER_DESCRIPTOR_SHALLOW,
@@ -248,6 +194,8 @@ typedef enum { /*< underscore_name=gweather_descriptor >*/
 } GWeatherConditionDescriptor;
 
 typedef enum { /*< underscore_name=gweather_precipitation >*/
+  GWEATHER_PRECIPITATION_INVALID = -1,
+  
   GWEATHER_PRECIPITATION_NONE,
 
   GWEATHER_PRECIPITATION_DRIZZLE,
@@ -264,6 +212,8 @@ typedef enum { /*< underscore_name=gweather_precipitation >*/
 } GWeatherConditionPrecipitation;
 
 typedef enum { /*< underscore_name=gweather_obscuration >*/
+  GWEATHER_OBSCURATION_INVALID = -1,
+  
   GWEATHER_OBSCURATION_NONE,
 
   GWEATHER_OBSCURATION_MIST,
@@ -280,6 +230,8 @@ typedef enum { /*< underscore_name=gweather_obscuration >*/
 } GWeatherConditionObscuration;
 
 typedef enum { /*< underscore_name=gweather_other >*/
+  GWEATHER_OTHER_INVALID = -1,
+  
   GWEATHER_OTHER_NONE,
 
   GWEATHER_OTHER_DUST_WHIRLS,
@@ -296,8 +248,12 @@ typedef gdouble GWeatherMoonLatitude;
 
 gboolean gweather_info_get_value_update		(GWeatherInfo *info, time_t *value);
 gboolean gweather_info_get_value_sky		(GWeatherInfo *info, GWeatherSky *sky);
-// TODO: change this
-gboolean gweather_info_get_value_conditions	(GWeatherInfo *info, GWeatherConditionPhenomenon *phenomenon, GWeatherConditionQualifier *qualifier);
+gboolean gweather_info_get_value_conditions	(GWeatherInfo *info, 
+                                             GWeatherConditionIntensity *intensity, 
+                                             GWeatherConditionDescriptor *descriptor
+                                             GWeatherConditionPrecipitation *precipitation,
+                                             GWeatherConditionObscuration *obscuration,
+                                             GWeatherConditionOther *other);
 gboolean gweather_info_get_value_temp		(GWeatherInfo *info, GWeatherTemperatureUnit unit, gdouble *value);
 gboolean gweather_info_get_value_temp_min	(GWeatherInfo *info, GWeatherTemperatureUnit unit, gdouble *value);
 gboolean gweather_info_get_value_temp_max	(GWeatherInfo *info, GWeatherTemperatureUnit unit, gdouble *value);
@@ -314,8 +270,6 @@ gboolean gweather_info_get_upcoming_moonphases  (GWeatherInfo *info, time_t *pha
 typedef struct _GWeatherConditions GWeatherConditions;
 struct _GWeatherConditions {
     gboolean significant;
-    //GWeatherConditionPhenomenon phenomenon;
-    //GWeatherConditionQualifier qualifier;
 
     GWeatherConditionIntensity intensity;
     GWeatherConditionDescriptor descriptor;

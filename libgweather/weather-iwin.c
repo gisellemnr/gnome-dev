@@ -241,7 +241,7 @@ parseForecastXml (const char *buff, GWeatherInfo *master_info)
 
                                         for (i = 0; i < G_N_ELEMENTS (ph_list); i++) {
                                             if (strstr ((const char *)val, ph_list [i].name)) {
-						priv->cond.significant = TRUE;
+						                                    priv->cond.significant = TRUE;
                                                 priv->cond.phenomenon = ph_list [i].ph;
                                                 break;
                                             }

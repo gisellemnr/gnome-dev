@@ -228,21 +228,9 @@ requests_init (GWeatherInfo *info)
 }
 
 void
-_gweather_info_begin_request (GWeatherInfo *info,
-			      SoupMessage  *message)
+_gweather_info_request_done (GWeatherInfo *info)
 {
-    info->priv->requests_pending = g_slist_prepend (info->priv->requests_pending, message);
-    g_object_ref (message);
-}
-
-void
-_gweather_info_request_done (GWeatherInfo *info,
-			     SoupMessage  *message)
-{
-    info->priv->requests_pending = g_slist_remove (info->priv->requests_pending, message);
-    g_object_ref (message);
-
-    if (info->priv->requests_pending == NULL)
+    if (!--info->priv->requests_pending)
         g_signal_emit (info, gweather_info_signals[SIGNAL_UPDATED], 0);
 }
 
@@ -437,7 +425,7 @@ settings_changed_cb (GSettings    *settings,
        Otherwise just wait for the update that will happen at
        the end
     */
-    if (priv->requests_pending == NULL)
+    if (priv->requests_pending == 0)
         g_signal_emit (info, gweather_info_signals[SIGNAL_UPDATED], 0);
 }
 
@@ -603,47 +591,12 @@ gweather_info_update (GWeatherInfo *info)
 void
 gweather_info_abort (GWeatherInfo *info)
 {
-    GSList *list, *iter;
-    GSList dummy = { NULL, NULL };
-
     g_return_if_fail (GWEATHER_IS_INFO (info));
 
-    if (info->priv->session == NULL) {
-	g_assert (info->priv->requests_pending == NULL);
-	return;
+    if (info->priv->session) {
+	soup_session_abort (info->priv->session);
+	info->priv->requests_pending = 0;
     }
-
-    list = info->priv->requests_pending;
-    /* to block updated signals */
-    info->priv->requests_pending = &dummy;
-
-    for (iter = list; iter; iter = iter->next)
-	soup_session_cancel_message (info->priv->session, iter->data, SOUP_STATUS_CANCELLED);
-    g_slist_free (list);
-
-    info->priv->requests_pending = NULL;
-}
-
-static void
-gweather_info_dispose (GObject *object)
-{
-    GWeatherInfo *info = GWEATHER_INFO (object);
-    GWeatherInfoPrivate *priv = info->priv;
-
-    gweather_info_abort (info);
-
-    g_clear_object (&priv->session);
-
-    free_forecast_list (info);
-
-    if (priv->radar != NULL) {
-        g_object_unref (priv->radar);
-        priv->radar = NULL;
-    }
-
-    priv->valid = FALSE;
-
-    G_OBJECT_CLASS (gweather_info_parent_class)->dispose (object);
 }
 
 static void
@@ -652,6 +605,10 @@ gweather_info_finalize (GObject *object)
     GWeatherInfo *info = GWEATHER_INFO (object);
     GWeatherInfoPrivate *priv = info->priv;
 
+    gweather_info_abort (info);
+    if (priv->session)
+	g_object_unref (priv->session);
+
     _weather_location_free (&priv->location);
 
     if (priv->glocation)
@@ -659,6 +616,13 @@ gweather_info_finalize (GObject *object)
 
     g_free (priv->radar_url);
     priv->radar_url = NULL;
+
+    free_forecast_list (info);
+
+    if (priv->radar != NULL) {
+        g_object_unref (priv->radar);
+        priv->radar = NULL;
+    }
 
     G_OBJECT_CLASS (gweather_info_parent_class)->finalize (object);
 }
@@ -1704,37 +1668,58 @@ gweather_info_get_value_sky (GWeatherInfo *info, GWeatherSky *sky)
 /**
  * gweather_info_get_value_conditions:
  * @info: a #GWeatherInfo
- * @phenomenon: (out): a location for a #GWeatherConditionPhenomenon.
- * @qualifier: (out): a location for a #GWeatherConditionQualifier.
+ * @intensity: (out): a location for a #GWeatherConditionIntensity.
+ * @descriptor: (out): a location for a #GWeatherConditionDescriptor.
+ * @precipitation: (out): a location for a #GWeatherConditionPrecipitation.
+ * @obscuration: (out): a location for a #GWeatherConditionObscuration.
+ * @other: (out): a location for a #GWeatherConditionOther.
  *
- * Fills out @phenomenon and @qualifier with current weather conditions.
+ * Fills out @intensity, @descriptor, @precipitation, @obscuration and @other with current weather conditions.
  * Returns: TRUE is out arguments are valid, FALSE otherwise.
  */
 gboolean
-gweather_info_get_value_conditions (GWeatherInfo *info, GWeatherConditionPhenomenon *phenomenon, GWeatherConditionQualifier *qualifier)
+gweather_info_get_value_conditions (GWeatherInfo *info,
+                                    GWeatherConditionIntensity *intensity, 
+                                    GWeatherConditionDescriptor *descriptor
+                                    GWeatherConditionPrecipitation *precipitation,
+                                    GWeatherConditionObscuration *obscuration,
+                                    GWeatherConditionOther *other)
 {
     GWeatherInfoPrivate *priv;
 
     g_return_val_if_fail (GWEATHER_IS_INFO (info), FALSE);
-    g_return_val_if_fail (phenomenon != NULL, FALSE);
-    g_return_val_if_fail (qualifier != NULL, FALSE);
+    g_return_val_if_fail (intensity != NULL, FALSE);
+    g_return_val_if_fail (descriptor != NULL, FALSE);
+    g_return_val_if_fail (precipitation != NULL, FALSE);
+    g_return_val_if_fail (obscuration != NULL, FALSE);
+    g_return_val_if_fail (other != NULL, FALSE);
 
     priv = info->priv;
 
     if (!priv->valid)
-	return FALSE;
+	    return FALSE;
 
     if (!priv->cond.significant)
-	return FALSE;
+	    return FALSE;
 
-    if (!(priv->cond.phenomenon > GWEATHER_PHENOMENON_INVALID &&
-	  priv->cond.phenomenon < GWEATHER_PHENOMENON_LAST &&
-	  priv->cond.qualifier > GWEATHER_QUALIFIER_INVALID &&
-	  priv->cond.qualifier < GWEATHER_QUALIFIER_LAST))
+    if (!(priv->cond.intensity > GWEATHER_INTENSITY_INVALID &&
+	        priv->cond.intensity < GWEATHER_INTENSITY_LAST &&
+	        priv->cond.descriptor > GWEATHER_DESCRIPTOR_INVALID &&
+	        priv->cond.descriptor < GWEATHER_DESCRIPTOR_LAST &&
+	        priv->cond.precipitation > GWEATHER_PRECIPITATION_INVALID &&
+	        priv->cond.precipitation < GWEATHER_PRECIPITATION_LAST &&
+	        priv->cond.obscuration > GWEATHER_OBSCURATION_INVALID &&
+	        priv->cond.obscuration < GWEATHER_OBSCURATION_LAST &&
+	        priv->cond.other > GWEATHER_OTHER_INVALID &&
+	        priv->cond.other < GWEATHER_OTHER_LAST)
+      )
         return FALSE;
 
-    *phenomenon = priv->cond.phenomenon;
-    *qualifier = priv->cond.qualifier;
+    *intensity = priv->cond.intensity;
+    *descriptor = priv->cond.descriptor;
+    *precipitation = priv->cond.precipitation;
+    *obscuration = priv->cond.obscuration;
+    *other = priv->cond.other;
 
     return TRUE;
 }
@@ -2172,7 +2157,6 @@ gweather_info_class_init (GWeatherInfoClass *klass)
 
     g_type_class_add_private (klass, sizeof(GWeatherInfoPrivate));
 
-    gobject_class->dispose = gweather_info_dispose;
     gobject_class->finalize = gweather_info_finalize;
     gobject_class->set_property = gweather_info_set_property;
     gobject_class->get_property = gweather_info_get_property;
