@@ -191,10 +191,11 @@ make_info_from_node (GWeatherInfo *master_info,
     val = xmlGetProp (node, XC("code"));
     code = strtol((const char*) val, NULL, 0);
     if (code >= 0 && code < G_N_ELEMENTS (condition_codes)) {
-	priv->cond = condition_codes[code];
-	priv->sky = sky_codes[code];
+	    priv->cond = condition_codes[code];
+	    priv->sky = sky_codes[code];
     } else
-	priv->valid = FALSE;
+    	priv->valid = FALSE;
+    
     xmlFree (val);
 
     return info;
