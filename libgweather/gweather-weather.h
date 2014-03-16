@@ -239,6 +239,7 @@ typedef enum { /*< underscore_name=gweather_other >*/
   GWEATHER_OTHER_SANDSTORM,
   GWEATHER_OTHER_FUNNEL_CLOUD,
   GWEATHER_OTHER_TORNADO,
+  GWEATHER_OTHER_DUSTSTORM,
 
   GWEATHER_OTHER_LAST
 } GWeatherConditionOther;

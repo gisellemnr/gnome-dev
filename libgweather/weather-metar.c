@@ -330,6 +330,7 @@ static const int importance_scale_other[] = {
   50, /* sandstorm */
   70, /* funnel cloud */
   70, /* tornado */
+  50, /* duststorm */
 };
 
 static gboolean
@@ -364,8 +365,8 @@ condition_more_important (GWeatherConditions *which,
 #define COND_DESC_RE_STR "(MI|PR|BC|DR|BL|SH|TS|FZ)"
 #define COND_PREC_RE_STR "(DZ|RA|SN|SG|IC|PL|GR|GS|UP)"
 #define COND_OBSC_RE_STR "(BR|FG|FU|VA|DU|SA|HZ|PY)"
-#define COND_OTHR_RE_STR "(PO|SQ|\\+?FC|SS)"
-#define COND_RE_STR  COND_INTE_RE_STR+"?"+COND_DESC_RE_STR+"?"+COND_PREC_RE_STR+"?"+COND_OBSC_RE_STR+"?"+COND_OTHR_RE_STR+"?"
+#define COND_OTHR_RE_STR "(PO|SQ|\\+?FC|SS|DS)"
+#define COND_RE_STR  COND_INTE_RE_STR"?"COND_DESC_RE_STR"?"COND_PREC_RE_STR"?"COND_OBSC_RE_STR"?"COND_OTHR_RE_STR"?"
 
 static void
 metar_tok_cond (gchar *tokp, GWeatherInfo *info)
@@ -497,6 +498,8 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
         new_cond.other = GWEATHER_OTHER_FUNNEL_CLOUD;
       else if( !strcmp(other, "SS") ) 
         new_cond.other = GWEATHER_OTHER_SANDSTORM;
+      else if( !strcmp(other, "DS") ) 
+        new_cond.other = GWEATHER_OTHER_DUSTSTORM;
       else return;
     } else {
       new_cond.other = GWEATHER_OTHER_NONE;

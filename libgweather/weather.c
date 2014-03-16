@@ -391,8 +391,11 @@ gweather_info_reset (GWeatherInfo *info)
     priv->current_time = time(NULL);
     priv->sky = -1;
     priv->cond.significant = FALSE;
-    priv->cond.phenomenon = GWEATHER_PHENOMENON_NONE;
-    priv->cond.qualifier = GWEATHER_QUALIFIER_NONE;
+    priv->cond.intensity = GWEATHER_INTENSITY_NONE;
+    priv->cond.descriptor = GWEATHER_DESCRIPTOR_NONE;
+    priv->cond.precipitation = GWEATHER_PRECIPITATION_NONE;
+    priv->cond.obscuration = GWEATHER_OBSCURATION_NONE;
+    priv->cond.other = GWEATHER_OTHER_NONE;
     priv->temp = -1000.0;
     priv->tempMinMaxValid = FALSE;
     priv->temp_min = -1000.0;
@@ -1291,77 +1294,68 @@ gweather_info_get_icon_name (GWeatherInfo *info)
     sky = priv->sky;
 
     if (cond.significant) {
-	if (cond.phenomenon != GWEATHER_PHENOMENON_NONE &&
-	    cond.qualifier == GWEATHER_QUALIFIER_THUNDERSTORM)
+      
+      if (cond.descriptor == GWEATHER_DESCRIPTOR_THUNDERSTORM ||
+          cond.other == GWEATHER_OTHER_TORNADO ||
+          cond.other == GWEATHER_OTHER_SQUALL)
             return "weather-storm";
 
-        switch (cond.phenomenon) {
-	case GWEATHER_PHENOMENON_INVALID:
-	case GWEATHER_PHENOMENON_LAST:
-	case GWEATHER_PHENOMENON_NONE:
-	    break;
+      if (cond.precipitation == GWEATHER_PRECIPITATION_DRIZZLE ||
+          cond.precipitation == GWEATHER_PRECIPITATION_RAIN ||
+          cond.precipitation == GWEATHER_PRECIPITATION_UNKNOWN ||
+          cond.precipitation == GWEATHER_PRECIPITATION_HAIL ||
+          cond.precipitation == GWEATHER_PRECIPITATION_SMALL_HAIL)
+            return "weather-showers";
 
-	case GWEATHER_PHENOMENON_DRIZZLE:
-	case GWEATHER_PHENOMENON_RAIN:
-	case GWEATHER_PHENOMENON_UNKNOWN_PRECIPITATION:
-	case GWEATHER_PHENOMENON_HAIL:
-	case GWEATHER_PHENOMENON_SMALL_HAIL:
-	    return "weather-showers";
+      if (cond.precipitation == GWEATHER_PRECIPITATION_SNOW || 
+          cond.precipitation == GWEATHER_PRECIPITATION_SNOW_GRAINS ||
+          cond.precipitation == GWEATHER_PRECIPITATION_ICE_PELLETS ||
+          cond.precipitation == GWEATHER_PRECIPITATION_ICE_CRYSTALS)
+            return "weather-snow";
 
-	case GWEATHER_PHENOMENON_SNOW:
-	case GWEATHER_PHENOMENON_SNOW_GRAINS:
-	case GWEATHER_PHENOMENON_ICE_PELLETS:
-	case GWEATHER_PHENOMENON_ICE_CRYSTALS:
-	    return "weather-snow";
-
-	case GWEATHER_PHENOMENON_TORNADO:
-	case GWEATHER_PHENOMENON_SQUALL:
-	    return "weather-storm";
-
-	case GWEATHER_PHENOMENON_MIST:
-	case GWEATHER_PHENOMENON_FOG:
-	case GWEATHER_PHENOMENON_SMOKE:
-	case GWEATHER_PHENOMENON_VOLCANIC_ASH:
-	case GWEATHER_PHENOMENON_SAND:
-	case GWEATHER_PHENOMENON_HAZE:
-	case GWEATHER_PHENOMENON_SPRAY:
-	case GWEATHER_PHENOMENON_DUST:
-	case GWEATHER_PHENOMENON_SANDSTORM:
-	case GWEATHER_PHENOMENON_DUSTSTORM:
-	case GWEATHER_PHENOMENON_FUNNEL_CLOUD:
-	case GWEATHER_PHENOMENON_DUST_WHIRLS:
-	    return "weather-fog";
-        }
+      if (cond.obscuration == GWEATHER_OBSCURATION_MIST ||
+          cond.obscuration == GWEATHER_OBSCURATION_FOG ||
+          cond.obscuration == GWEATHER_OBSCURATION_SMOKE ||
+          cond.obscuration == GWEATHER_OBSCURATION_VOLCANIC_ASH ||
+          cond.obscuration == GWEATHER_OBSCURATION_SAND ||
+          cond.obscuration == GWEATHER_OBSCURATION_HAZE ||
+          cond.obscuration == GWEATHER_OBSCURATION_SPRAY ||
+          cond.obscuration == GWEATHER_OBSCURATION_WIDESPREAD_DUST ||
+          cond.other == GWEATHER_OTHER_SANDSTORM ||
+          cond.other == GWEATHER_OTHER_DUSTSTORM ||
+          cond.other == GWEATHER_OTHER_FUNNEL_CLOUD ||
+          cond.other == GWEATHER_OTHER_DUST_WHIRLS)
+            return "weather-fog";
     }
 
     daytime = gweather_info_is_daytime (info);
 
     switch (sky) {
-    case GWEATHER_SKY_INVALID:
-    case GWEATHER_SKY_LAST:
-    case GWEATHER_SKY_CLEAR:
-	if (daytime)
-	    return "weather-clear";
-	else {
-	    icon = g_stpcpy(icon_buffer, "weather-clear-night");
-	    break;
-	}
-
-    case GWEATHER_SKY_BROKEN:
-    case GWEATHER_SKY_SCATTERED:
-    case GWEATHER_SKY_FEW:
-	if (daytime)
-	    return "weather-few-clouds";
-	else {
-	    icon = g_stpcpy(icon_buffer, "weather-few-clouds-night");
-	    break;
-	}
-
-    case GWEATHER_SKY_OVERCAST:
-	return "weather-overcast";
-
-    default: /* unrecognized */
-	return NULL;
+      case GWEATHER_SKY_INVALID:
+      case GWEATHER_SKY_LAST:
+      case GWEATHER_SKY_CLEAR:
+	      if (daytime)
+	        return "weather-clear";
+	      else {
+	        icon = g_stpcpy(icon_buffer, "weather-clear-night");
+	        break;
+	      }
+     
+      case GWEATHER_SKY_BROKEN:
+      case GWEATHER_SKY_SCATTERED:
+      case GWEATHER_SKY_FEW:
+	 	 	if (daytime)
+	 	 	    return "weather-few-clouds";
+	 	 	else {
+	 	 	    icon = g_stpcpy(icon_buffer, "weather-few-clouds-night");
+	 	 	    break;
+	 	 	}
+     
+      case GWEATHER_SKY_OVERCAST:
+	      return "weather-overcast";
+     
+      default: /* unrecognized */
+	      return NULL;
     }
 
     /*
@@ -1369,31 +1363,30 @@ gweather_info_get_icon_name (GWeatherInfo *info)
      * Determine which one based on the moon's location
      */
     if (priv->moonValid && gweather_info_get_value_moonphase(info, &moonPhase, &moonLat)) {
-	phase = (gint)((moonPhase * MOON_PHASES / 360.) + 0.5);
-	if (phase == MOON_PHASES) {
-	    phase = 0;
-	} else if (phase > 0 &&
-		   (RADIANS_TO_DEGREES(priv->location.latitude)
-		    < moonLat)) {
-	    /*
-	     * Locations south of the moon's latitude will see the moon in the
-	     * northern sky.  The moon waxes and wanes from left to right
-	     * so we reference an icon running in the opposite direction.
-	     */
-	    phase = MOON_PHASES - phase;
-	}
+			phase = (gint)((moonPhase * MOON_PHASES / 360.) + 0.5);
+			if (phase == MOON_PHASES) {
+			    phase = 0;
+			} else if (phase > 0 && (RADIANS_TO_DEGREES(priv->location.latitude) < moonLat)) {
+	      /*
+	      * Locations south of the moon's latitude will see the moon in the
+	      * northern sky.  The moon waxes and wanes from left to right
+	      * so we reference an icon running in the opposite direction.
+	      */
+	      phase = MOON_PHASES - phase;
+	    }
 
-	/*
-	 * If the moon is not full then append the angle to the icon string.
-	 * Note that an icon by this name is not required to exist:
-	 * the caller can use GTK_ICON_LOOKUP_GENERIC_FALLBACK to fall back to
-	 * the full moon image.
-	 */
-	if ((0 == (MOON_PHASES & 0x1)) && (MOON_PHASES/2 != phase)) {
-	    g_snprintf(icon, sizeof(icon_buffer) - strlen(icon_buffer),
-		       "-%03d", phase * 360 / MOON_PHASES);
-	}
+			/*
+			 * If the moon is not full then append the angle to the icon string.
+			 * Note that an icon by this name is not required to exist:
+			 * the caller can use GTK_ICON_LOOKUP_GENERIC_FALLBACK to fall back to
+			 * the full moon image.
+			 */
+			if ((0 == (MOON_PHASES & 0x1)) && (MOON_PHASES/2 != phase)) {
+			    g_snprintf(icon, sizeof(icon_buffer) - strlen(icon_buffer),
+				       "-%03d", phase * 360 / MOON_PHASES);
+			}
     }
+
     return icon_buffer;
 }
 
@@ -1416,73 +1409,65 @@ gweather_info_get_symbolic_icon_name (GWeatherInfo *info)
     sky = priv->sky;
 
     if (cond.significant) {
-	if (cond.phenomenon != GWEATHER_PHENOMENON_NONE &&
-	    cond.qualifier == GWEATHER_QUALIFIER_THUNDERSTORM)
+
+      if (cond.descriptor == GWEATHER_DESCRIPTOR_THUNDERSTORM ||
+          cond.other == GWEATHER_OTHER_TORNADO ||
+          cond.other == GWEATHER_OTHER_SQUALL)
             return "weather-storm-symbolic";
 
-        switch (cond.phenomenon) {
-	case GWEATHER_PHENOMENON_INVALID:
-	case GWEATHER_PHENOMENON_LAST:
-	case GWEATHER_PHENOMENON_NONE:
-	    break;
+      if (cond.precipitation == GWEATHER_PRECIPITATION_DRIZZLE ||
+          cond.precipitation == GWEATHER_PRECIPITATION_RAIN ||
+          cond.precipitation == GWEATHER_PRECIPITATION_UNKNOWN ||
+          cond.precipitation == GWEATHER_PRECIPITATION_HAIL ||
+          cond.precipitation == GWEATHER_PRECIPITATION_SMALL_HAIL)
+            return "weather-showers-symbolic";
 
-	case GWEATHER_PHENOMENON_DRIZZLE:
-	case GWEATHER_PHENOMENON_RAIN:
-	case GWEATHER_PHENOMENON_UNKNOWN_PRECIPITATION:
-	case GWEATHER_PHENOMENON_HAIL:
-	case GWEATHER_PHENOMENON_SMALL_HAIL:
-	    return "weather-showers-symbolic";
+      if (cond.precipitation == GWEATHER_PRECIPITATION_SNOW || 
+          cond.precipitation == GWEATHER_PRECIPITATION_SNOW_GRAINS ||
+          cond.precipitation == GWEATHER_PRECIPITATION_ICE_PELLETS ||
+          cond.precipitation == GWEATHER_PRECIPITATION_ICE_CRYSTALS)
+            return "weather-snow-symbolic";
 
-	case GWEATHER_PHENOMENON_SNOW:
-	case GWEATHER_PHENOMENON_SNOW_GRAINS:
-	case GWEATHER_PHENOMENON_ICE_PELLETS:
-	case GWEATHER_PHENOMENON_ICE_CRYSTALS:
-	    return "weather-snow-symbolic";
+      if (cond.obscuration == GWEATHER_OBSCURATION_MIST ||
+          cond.obscuration == GWEATHER_OBSCURATION_FOG ||
+          cond.obscuration == GWEATHER_OBSCURATION_SMOKE ||
+          cond.obscuration == GWEATHER_OBSCURATION_VOLCANIC_ASH ||
+          cond.obscuration == GWEATHER_OBSCURATION_SAND ||
+          cond.obscuration == GWEATHER_OBSCURATION_HAZE ||
+          cond.obscuration == GWEATHER_OBSCURATION_SPRAY ||
+          cond.obscuration == GWEATHER_OBSCURATION_WIDESPREAD_DUST ||
+          cond.other == GWEATHER_OTHER_SANDSTORM ||
+          cond.other == GWEATHER_OTHER_DUSTSTORM ||
+          cond.other == GWEATHER_OTHER_FUNNEL_CLOUD ||
+          cond.other == GWEATHER_OTHER_DUST_WHIRLS)
+            return "weather-fog-symbolic";
 
-	case GWEATHER_PHENOMENON_TORNADO:
-	case GWEATHER_PHENOMENON_SQUALL:
-	    return "weather-storm-symbolic";
-
-	case GWEATHER_PHENOMENON_MIST:
-	case GWEATHER_PHENOMENON_FOG:
-	case GWEATHER_PHENOMENON_SMOKE:
-	case GWEATHER_PHENOMENON_VOLCANIC_ASH:
-	case GWEATHER_PHENOMENON_SAND:
-	case GWEATHER_PHENOMENON_HAZE:
-	case GWEATHER_PHENOMENON_SPRAY:
-	case GWEATHER_PHENOMENON_DUST:
-	case GWEATHER_PHENOMENON_SANDSTORM:
-	case GWEATHER_PHENOMENON_DUSTSTORM:
-	case GWEATHER_PHENOMENON_FUNNEL_CLOUD:
-	case GWEATHER_PHENOMENON_DUST_WHIRLS:
-	    return "weather-fog-symbolic";
-        }
     }
 
     daytime = gweather_info_is_daytime (info);
 
     switch (sky) {
-    case GWEATHER_SKY_INVALID:
-    case GWEATHER_SKY_LAST:
-    case GWEATHER_SKY_CLEAR:
-	if (daytime)
-	    return "weather-clear-symbolic";
-	else
-	    return "weather-clear-night-symbolic";
+      case GWEATHER_SKY_INVALID:
+      case GWEATHER_SKY_LAST:
+      case GWEATHER_SKY_CLEAR:
+        if (daytime)
+          return "weather-clear-symbolic";
+        else
+          return "weather-clear-night-symbolic";
 
-    case GWEATHER_SKY_BROKEN:
-    case GWEATHER_SKY_SCATTERED:
-    case GWEATHER_SKY_FEW:
-	if (daytime)
-	    return "weather-few-clouds-symbolic";
-	else
-	    return "weather-few-clouds-night-symbolic";
+      case GWEATHER_SKY_BROKEN:
+      case GWEATHER_SKY_SCATTERED:
+      case GWEATHER_SKY_FEW:
+        if (daytime)
+          return "weather-few-clouds-symbolic";
+        else
+          return "weather-few-clouds-night-symbolic";
 
-    case GWEATHER_SKY_OVERCAST:
-	return "weather-overcast-symbolic";
+      case GWEATHER_SKY_OVERCAST:
+        return "weather-overcast-symbolic";
 
-    default: /* unrecognized */
-	return NULL;
+      default: /* unrecognized */
+        return NULL;
     }
 }
 
