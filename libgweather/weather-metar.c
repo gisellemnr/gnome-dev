@@ -662,15 +662,15 @@ metar_finish (SoupSession *session, SoupMessage *msg, gpointer data)
 	success = metar_parse (metar, info);
 	g_free (metar);
     } else if (!strstr (msg->response_body->data, "National Weather Service")) {
-	/* The response doesn't even seem to have come from NWS...
-	 * most likely it is a wifi hotspot login page. Call that a
-	 * network error.
-	 */
-	priv->network_error = TRUE;
+			/* The response doesn't even seem to have come from NWS...
+			 * most likely it is a wifi hotspot login page. Call that a
+			 * network error.
+			 */
+			priv->network_error = TRUE;
     }
 
     priv->valid = success;
-    _gweather_info_request_done (info);
+    _gweather_info_request_done (info, msg);
 }
 
 /* Read current conditions and fill in info structure */

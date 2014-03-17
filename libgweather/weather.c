@@ -177,7 +177,6 @@ static const gchar *conditions_precipitation_str[10] = {
   "", /* unknown */
 };
 
-<<<<<<< HEAD
 static const gchar *conditions_obscuration_str[9] = {
   "", /* none */
   N_("mist "), /* mist */
