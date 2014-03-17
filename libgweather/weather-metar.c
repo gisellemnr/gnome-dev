@@ -670,7 +670,7 @@ metar_finish (SoupSession *session, SoupMessage *msg, gpointer data)
     }
 
     priv->valid = success;
-    _gweather_info_request_done (info, msg);
+    _gweather_info_request_done (info);
 }
 
 /* Read current conditions and fill in info structure */

@@ -177,6 +177,7 @@ static const gchar *conditions_precipitation_str[10] = {
   "", /* unknown */
 };
 
+<<<<<<< HEAD
 static const gchar *conditions_obscuration_str[9] = {
   "", /* none */
   N_("mist "), /* mist */
@@ -474,7 +475,7 @@ settings_changed_cb (GSettings    *settings,
        Otherwise just wait for the update that will happen at
        the end
     */
-    if (priv->requests_pending == NULL)
+    if (priv->requests_pending == 0)
         g_signal_emit (info, gweather_info_signals[SIGNAL_UPDATED], 0);
 }
 
