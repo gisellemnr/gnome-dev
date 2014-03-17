@@ -366,19 +366,18 @@ condition_more_important (GWeatherConditions *which,
 #define COND_PREC_RE_STR "(DZ|RA|SN|SG|IC|PL|GR|GS|UP)"
 #define COND_OBSC_RE_STR "(BR|FG|FU|VA|DU|SA|HZ|PY)"
 #define COND_OTHR_RE_STR "(PO|SQ|\\+?FC|SS|DS)"
-#define COND_RE_STR  COND_INTE_RE_STR"?"COND_DESC_RE_STR"?"COND_PREC_RE_STR"?"COND_OBSC_RE_STR"?"COND_OTHR_RE_STR"?"
+#define COND_RE_STR  COND_INTE_RE_STR"?"COND_DESC_RE_STR"?"COND_PREC_RE_STR"*"COND_OBSC_RE_STR"?"COND_OTHR_RE_STR"?"
 
 static void
 metar_tok_cond (gchar *tokp, GWeatherInfo *info)
 {
     GWeatherInfoPrivate *priv;
     GWeatherConditions new_cond;
-    gchar substr[12], intensity[3], descriptor[3], precipitation[3], obscuration[3], other[4];
+    gchar substr[20] = "";
+    gchar abbr[COND_RE_NUM][4];
     regex_t cond_re[COND_RE_NUM];
     regmatch_t cond_rm[COND_RE_NUM];
     gint i, start;
-    
-    //printf("***** tokp: %s\n", tokp);
     
     regcomp (&cond_re[COND_INTE_RE], COND_INTE_RE_STR, REG_EXTENDED);
     regcomp (&cond_re[COND_DESC_RE], COND_DESC_RE_STR, REG_EXTENDED);
@@ -388,119 +387,122 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
 
     start = 0;
     for(i = 0; i < COND_RE_NUM; i++) {
+      memset(abbr[i], 0, 4*sizeof(gchar));
       strcpy(substr, tokp + start); 
       if(regexec(&cond_re[i], substr, 1, &cond_rm[i], 0) == 0) {
-        cond_rm[i].rm_so += start;
-        cond_rm[i].rm_eo += start;
-        start = cond_rm[i].rm_eo + 1;
+        strncpy(abbr[i], substr + cond_rm[i].rm_so, cond_rm[i].rm_eo);
+        start += cond_rm[i].rm_eo;
       }
     }
 
     priv = info->priv;
     
-    // rm_so and rm_eo are -1 in case of no match.
-
-    if (cond_rm[COND_INTE_RE].rm_so != -1) {
-      strncpy(intensity, tokp + cond_rm[COND_INTE_RE].rm_so, cond_rm[COND_INTE_RE].rm_eo);
-      if ( !strcmp(intensity, "-") ) 
+    if ( strcmp(abbr[COND_INTE_RE], "") ) {
+      if ( !strcmp(abbr[COND_INTE_RE], "-") ) 
         new_cond.intensity = GWEATHER_INTENSITY_LIGHT;
-      else if ( !strcmp(intensity, "") )
+      else if ( !strcmp(abbr[COND_INTE_RE], "") )
         new_cond.intensity = GWEATHER_INTENSITY_MODERATE;
-      else if ( !strcmp(intensity, "+") ) 
+      else if ( !strcmp(abbr[COND_INTE_RE], "+") ) 
         new_cond.intensity = GWEATHER_INTENSITY_HEAVY;
-      else if ( !strcmp(intensity, "VC") )
+      else if ( !strcmp(abbr[COND_INTE_RE], "VC") )
         new_cond.intensity = GWEATHER_INTENSITY_VICINITY;
-      else return;
+      else {
+        return;
+      }
     } else {
       new_cond.intensity = GWEATHER_INTENSITY_NONE;
     }
 
-    if (cond_rm[COND_DESC_RE].rm_so != -1) {
-      strncpy(descriptor, tokp + cond_rm[COND_DESC_RE].rm_so, cond_rm[COND_DESC_RE].rm_eo);
-      if ( !strcmp(descriptor, "MI") )
+    if ( strcmp(abbr[COND_DESC_RE], "") ) {
+      if ( !strcmp(abbr[COND_DESC_RE], "MI") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_SHALLOW;
-      else if ( !strcmp(descriptor, "PR") )
+      else if ( !strcmp(abbr[COND_DESC_RE], "PR") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_PARTIAL;
-      else if ( !strcmp(descriptor, "BC") )
+      else if ( !strcmp(abbr[COND_DESC_RE], "BC") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_PATCHES;
-      else if ( !strcmp(descriptor, "DR") )
+      else if ( !strcmp(abbr[COND_DESC_RE], "DR") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_LOW_DRIFTING;
-      else if ( !strcmp(descriptor, "BL") )
+      else if ( !strcmp(abbr[COND_DESC_RE], "BL") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_BLOWING;
-      else if ( !strcmp(descriptor, "SH") )
+      else if ( !strcmp(abbr[COND_DESC_RE], "SH") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_SHOWERS;
-      else if ( !strcmp(descriptor, "TS") )
+      else if ( !strcmp(abbr[COND_DESC_RE], "TS") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_THUNDERSTORM;
-      else if ( !strcmp(descriptor, "FZ") )
+      else if ( !strcmp(abbr[COND_DESC_RE], "FZ") )
         new_cond.descriptor = GWEATHER_DESCRIPTOR_FREEZING;
-      else return;
+      else {
+        return;
+      }
     } else {
       new_cond.descriptor = GWEATHER_DESCRIPTOR_NONE;
     }
 
-    if (cond_rm[COND_PREC_RE].rm_so != -1) {
-      strncpy(precipitation, tokp + cond_rm[COND_PREC_RE].rm_so, cond_rm[COND_PREC_RE].rm_eo);
-      if ( !strcmp(precipitation, "DZ") ) 
+    if ( strcmp(abbr[COND_PREC_RE], "") ) {
+      if ( !strcmp(abbr[COND_PREC_RE], "DZ") ) 
         new_cond.precipitation = GWEATHER_PRECIPITATION_DRIZZLE;
-      else if ( !strcmp(precipitation, "RA") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "RA") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_RAIN;
-      else if ( !strcmp(precipitation, "SN") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "SN") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_SNOW;
-      else if ( !strcmp(precipitation, "SG") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "SG") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_SNOW_GRAINS;
-      else if ( !strcmp(precipitation, "IC") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "IC") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_ICE_CRYSTALS;
-      else if ( !strcmp(precipitation, "PL") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "PL") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_ICE_PELLETS;
-      else if ( !strcmp(precipitation, "GR") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "GR") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_HAIL;
-      else if ( !strcmp(precipitation, "GS") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "GS") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_SMALL_HAIL;
-      else if ( !strcmp(precipitation, "UP") )
+      else if ( !strcmp(abbr[COND_PREC_RE], "UP") )
         new_cond.precipitation = GWEATHER_PRECIPITATION_UNKNOWN;
-      else return;
+      else {
+        return;
+      }
     } else {
       new_cond.precipitation = GWEATHER_PRECIPITATION_NONE;
     }
 
-    if (cond_rm[COND_OBSC_RE].rm_so != -1) {
-      strncpy(obscuration, tokp + cond_rm[COND_OBSC_RE].rm_so, cond_rm[COND_OBSC_RE].rm_eo);
-      if ( !strcmp(obscuration, "BR") )
+    if ( strcmp(abbr[COND_OBSC_RE], "") ) {
+      if ( !strcmp(abbr[COND_OBSC_RE], "BR") )
         new_cond.obscuration = GWEATHER_OBSCURATION_MIST;
-      else if ( !strcmp(obscuration, "FG") )
+      else if ( !strcmp(abbr[COND_OBSC_RE], "FG") )
         new_cond.obscuration = GWEATHER_OBSCURATION_FOG;
-      else if ( !strcmp(obscuration, "FU") )
+      else if ( !strcmp(abbr[COND_OBSC_RE], "FU") )
         new_cond.obscuration = GWEATHER_OBSCURATION_SMOKE;
-      else if ( !strcmp(obscuration, "VA") )
+      else if ( !strcmp(abbr[COND_OBSC_RE], "VA") )
         new_cond.obscuration = GWEATHER_OBSCURATION_VOLCANIC_ASH;
-      else if ( !strcmp(obscuration, "DU") )
+      else if ( !strcmp(abbr[COND_OBSC_RE], "DU") )
         new_cond.obscuration = GWEATHER_OBSCURATION_WIDESPREAD_DUST;
-      else if ( !strcmp(obscuration, "SA") )
+      else if ( !strcmp(abbr[COND_OBSC_RE], "SA") )
         new_cond.obscuration = GWEATHER_OBSCURATION_SAND;
-      else if ( !strcmp(obscuration, "HZ") )
+      else if ( !strcmp(abbr[COND_OBSC_RE], "HZ") )
         new_cond.obscuration = GWEATHER_OBSCURATION_HAZE;
-      else if ( !strcmp(obscuration, "PY") )
+      else if ( !strcmp(abbr[COND_OBSC_RE], "PY") )
         new_cond.obscuration = GWEATHER_OBSCURATION_SPRAY;
-      else return;
+      else {
+        return;
+      }
     } else {
       new_cond.obscuration = GWEATHER_OBSCURATION_NONE;
     }
 
-    if (cond_rm[COND_OTHR_RE].rm_so != -1) {
-      strncpy(other, tokp + cond_rm[COND_OTHR_RE].rm_so, cond_rm[COND_OTHR_RE].rm_eo);
-      if( !strcmp(other, "PO") ) 
+    if ( strcmp(abbr[COND_OTHR_RE], "") ) {
+      if( !strcmp(abbr[COND_OTHR_RE], "PO") ) 
         new_cond.other = GWEATHER_OTHER_DUST_WHIRLS;
-      else if( !strcmp(other, "SQ") ) 
+      else if( !strcmp(abbr[COND_OTHR_RE], "SQ") ) 
         new_cond.other = GWEATHER_OTHER_SQUALL;
-      else if( !strcmp(other, "+FC") ) 
+      else if( !strcmp(abbr[COND_OTHR_RE], "+FC") ) 
         new_cond.other = GWEATHER_OTHER_TORNADO;
-      else if( !strcmp(other, "FC") ) 
+      else if( !strcmp(abbr[COND_OTHR_RE], "FC") ) 
         new_cond.other = GWEATHER_OTHER_FUNNEL_CLOUD;
-      else if( !strcmp(other, "SS") ) 
+      else if( !strcmp(abbr[COND_OTHR_RE], "SS") ) 
         new_cond.other = GWEATHER_OTHER_SANDSTORM;
-      else if( !strcmp(other, "DS") ) 
+      else if( !strcmp(abbr[COND_OTHR_RE], "DS") ) 
         new_cond.other = GWEATHER_OTHER_DUSTSTORM;
-      else return;
+      else {
+        return;
+      }
     } else {
       new_cond.other = GWEATHER_OTHER_NONE;
     }
@@ -509,8 +511,8 @@ metar_tok_cond (gchar *tokp, GWeatherInfo *info)
         (new_cond.descriptor != GWEATHER_DESCRIPTOR_NONE) ||
         (new_cond.precipitation != GWEATHER_PRECIPITATION_NONE) ||
         (new_cond.obscuration != GWEATHER_OBSCURATION_NONE) ||
-        (new_cond.other != GWEATHER_OTHER_NONE) )
-        new_cond.significant = TRUE;
+        (new_cond.other != GWEATHER_OTHER_NONE) ) 
+            new_cond.significant = TRUE;
 
     if (condition_more_important (&new_cond, &priv->cond))
 	    priv->cond = new_cond;
