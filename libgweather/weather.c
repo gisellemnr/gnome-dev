@@ -144,77 +144,111 @@ gweather_sky_to_string (GWeatherSky sky)
     return _(sky_str[(int)sky]);
 }
 
+static const gchar *conditions_intensity_str[5] = {
+  "", /* none */
+  N_("light "), /* light */
+  N_("moderate "), /* moderate */
+  N_("heavy "), /* heavy */
+  N_("in the vicinity "), /* vicinity */
+};
 
-/*
- * Even though tedious, I switched to a 2D array for weather condition
- * strings, in order to facilitate internationalization, esp. for languages
- * with genders.
- */
+static const gchar *conditions_descriptor_str[9] = {
+  "", /* none */
+  N_("shallow "), /* shallow */
+  N_("partial "), /* partial */
+  N_("patches of "), /* patches */
+  N_("low drifting "), /* low drifting */
+  N_("blowing "), /* blowing */
+  N_("showers "), /* showers */
+  N_("storm "), /* thunderstorm */
+  N_("freezing "), /* freezing */
+};
 
-/*
- * Almost all reportable combinations listed in
- * http://www.crh.noaa.gov/arx/wx.tbl.php are entered below, except those
- * having 2 qualifiers mixed together [such as "Blowing snow in vicinity"
- * (VCBLSN), "Thunderstorm in vicinity" (VCTS), etc].
- * Combinations that are not possible are filled in with "??".
- * Some other exceptions not handled yet, such as "SN BLSN" which has
- * special meaning.
- */
+static const gchar *conditions_precipitation_str[10] = {
+  "", /* none */
+  N_("drizzle "), /* drizzle */
+  N_("rain "), /* rain */
+  N_("snow "), /* snow */
+  N_("snow grains "), /* snow grains */
+  N_("ice crystals "), /* ice crystals */
+  N_("sleet "), /* ice pellets */
+  N_("hail "), /* hail */
+  N_("small hail "), /* small hail */
+  "", /* unknown */
+};
 
-/*
- * Note, magic numbers, when you change the size here, make sure to change
- * the below function so that new values are recognized
- */
-/*                   NONE                         VICINITY                             LIGHT                      MODERATE                      HEAVY                      SHALLOW                      PATCHES                         PARTIAL                      THUNDERSTORM                    BLOWING                      SHOWERS                         DRIFTING                      FREEZING                      */
-/*               *******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+static const gchar *conditions_obscuration_str[9] = {
+  "", /* none */
+  N_("mist "), /* mist */
+  N_("fog "), /* fog */
+  N_("smoke "), /* smoke */
+  N_("volcanic ash "), /* volcanic ash */
+  N_("dust "), /* widespread dust */
+  N_("sand "), /* sand */
+  N_("haze "), /* haze */
+  N_("spray "), /* spray */
+};
 
-// TODO: this needs to be changed...
-static const gchar *conditions_str[24][13] = {
-/* TRANSLATOR: If you want to know what "blowing" "shallow" "partial"
- * etc means, you can go to http://www.weather.com/glossary/ and
- * http://www.crh.noaa.gov/arx/wx.tbl.php */
-    /* NONE          */ {"??",                        "??",                                "??",                      "??",                         "??",                      "??",                        "??",                           "??",                        N_("Thunderstorm"),             "??",                        "??",                           "??",                         "??"                         },
-    /* DRIZZLE       */ {N_("Drizzle"),               "??",                                N_("Light drizzle"),       N_("Moderate drizzle"),       N_("Heavy drizzle"),       "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         N_("Freezing drizzle")       },
-    /* RAIN          */ {N_("Rain"),                  "??",                                N_("Light rain"),          N_("Moderate rain"),          N_("Heavy rain"),          "??",                        "??",                           "??",                        N_("Thunderstorm"),             "??",                        N_("Rain showers"),             "??",                         N_("Freezing rain")          },
-    /* SNOW          */ {N_("Snow"),                  "??",                                N_("Light snow"),          N_("Moderate snow"),          N_("Heavy snow"),          "??",                        "??",                           "??",                        N_("Snowstorm"),                N_("Blowing snowfall"),      N_("Snow showers"),             N_("Drifting snow"),          "??"                         },
-    /* SNOW_GRAINS   */ {N_("Snow grains"),           "??",                                N_("Light snow grains"),   N_("Moderate snow grains"),   N_("Heavy snow grains"),   "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* ICE_CRYSTALS  */ {N_("Ice crystals"),          "??",                                "??",                      N_("Ice crystals"),           "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* ICE_PELLETS   */ {N_("Sleet"),           "??",                                N_("Little sleet"),     N_("Moderate sleet"),   N_("Heavy sleet"),   "??",                        "??",                           "??",                        N_("Sleet storm"),         "??",                        N_("Showers of sleet"),   "??",                         "??"                         },
-    /* HAIL          */ {N_("Hail"),                  "??",                                "??",                      N_("Hail"),                   "??",                      "??",                        "??",                           "??",                        N_("Hailstorm"),                "??",                        N_("Hail showers"),             "??",                         "??",                        },
-    /* SMALL_HAIL    */ {N_("Small hail"),            "??",                                "??",                      N_("Small hail"),             "??",                      "??",                        "??",                           "??",                        N_("Small hailstorm"),          "??",                        N_("Showers of small hail"),    "??",                         "??"                         },
-    /* PRECIPITATION */ {N_("Unknown precipitation"), "??",                                "??",                      "??",                         "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* MIST          */ {N_("Mist"),                  "??",                                "??",                      N_("Mist"),                   "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* FOG           */ {N_("Fog"),                   N_("Fog in the vicinity") ,          "??",                      N_("Fog"),                    "??",                      N_("Shallow fog"),           N_("Patches of fog"),           N_("Partial fog"),           "??",                           "??",                        "??",                           "??",                         N_("Freezing fog")           },
-    /* SMOKE         */ {N_("Smoke"),                 "??",                                "??",                      N_("Smoke"),                  "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* VOLCANIC_ASH  */ {N_("Volcanic ash"),          "??",                                "??",                      N_("Volcanic ash"),           "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* SAND          */ {N_("Sand"),                  "??",                                "??",                      N_("Sand"),                   "??",                      "??",                        "??",                           "??",                        "??",                           N_("Blowing sand"),          "",                             N_("Drifting sand"),          "??"                         },
-    /* HAZE          */ {N_("Haze"),                  "??",                                "??",                      N_("Haze"),                   "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* SPRAY         */ {"??",                        "??",                                "??",                      "??",                         "??",                      "??",                        "??",                           "??",                        "??",                           N_("Blowing sprays"),        "??",                           "??",                         "??"                         },
-    /* DUST          */ {N_("Dust"),                  "??",                                "??",                      N_("Dust"),                   "??",                      "??",                        "??",                           "??",                        "??",                           N_("Blowing dust"),          "??",                           N_("Drifting dust"),          "??"                         },
-    /* SQUALL        */ {N_("Squall"),                "??",                                "??",                      N_("Squall"),                 "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* SANDSTORM     */ {N_("Sandstorm"),             N_("Sandstorm in the vicinity") ,    "??",                      N_("Sandstorm"),              N_("Heavy sandstorm"),     "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* DUSTSTORM     */ {N_("Duststorm"),             N_("Duststorm in the vicinity") ,    "??",                      N_("Duststorm"),              N_("Heavy duststorm"),     "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* FUNNEL_CLOUD  */ {N_("Funnel cloud"),          "??",                                "??",                      "??",                         "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* TORNADO       */ {N_("Tornado"),               "??",                                "??",                      "??",                         "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         },
-    /* DUST_WHIRLS   */ {N_("Dust whirls"),           N_("Dust whirls in the vicinity") ,  "??",                      N_("Dust whirls"),            "??",                      "??",                        "??",                           "??",                        "??",                           "??",                        "??",                           "??",                         "??"                         }
+static const gchar *conditions_other_str[7] ={
+  "", /* none */
+  N_("dust whirls "), /* dust whirls */
+  N_("squall "), /* squall */
+  N_("sandstorm "), /* sandstorm */
+  N_("funnel cloud "), /* funnel cloud */
+  N_("tornado "), /* tornado */
+  N_("duststorm "), /* duststorm */
 };
 
 const gchar *
 gweather_conditions_to_string (GWeatherConditions *cond)
 {
-    const gchar *str;
+    gchar str[70] = "";
+    // strings that need special treatment
+    gboolean vicinity = FALSE, showers = FALSE, thunderstorm = FALSE;
 
     if (!cond->significant) {
 	    return "-";
     } else {
-			if (cond->phenomenon > GWEATHER_PHENOMENON_INVALID &&
-			    cond->phenomenon < GWEATHER_PHENOMENON_LAST &&
-			    cond->qualifier > GWEATHER_QUALIFIER_INVALID &&
-			    cond->qualifier < GWEATHER_QUALIFIER_LAST)
-			    str = _(conditions_str[(int)cond->phenomenon][(int)cond->qualifier]);
+			if (cond->intensity > GWEATHER_INTENSITY_INVALID &&
+			    cond->intensity < GWEATHER_INTENSITY_LAST &&
+          cond->descriptor > GWEATHER_DESCRIPTOR_INVALID &&
+          cond->descriptor < GWEATHER_DESCRIPTOR_LAST &&
+          cond->precipitation > GWEATHER_PRECIPITATION_INVALID &&
+          cond->precipitation < GWEATHER_PRECIPITATION_LAST &&
+          cond->obscuration > GWEATHER_OBSCURATION_INVALID &&
+          cond->obscuration < GWEATHER_OBSCURATION_LAST &&
+			    cond->other > GWEATHER_OTHER_INVALID &&
+			    cond->other < GWEATHER_OTHER_LAST) {
+			      
+            if (cond->intensity == GWEATHER_INTENSITY_VICINITY) vicinity = TRUE;
+            if (cond->descriptor == GWEATHER_DESCRIPTOR_SHOWERS) showers = TRUE;
+            if (cond->descriptor == GWEATHER_DESCRIPTOR_THUNDERSTORM) thunderstorm = TRUE;
+            
+            if(!vicinity)
+              strcat(str, conditions_intensity_str[cond->intensity]);
+
+            if(!showers && !thunderstorm)
+              strcat(str, conditions_descriptor_str[cond->descriptor]);
+
+            strcat(str, conditions_precipitation_str[cond->precipitation]);
+            strcat(str, conditions_obscuration_str[cond->obscuration]);
+            strcat(str, conditions_other_str[cond->other]);
+
+            if(showers)
+              strcat(str, conditions_descriptor_str[cond->descriptor]);
+            else if(thunderstorm)
+              strcat(str, conditions_descriptor_str[cond->descriptor]);
+
+            if(vicinity)
+              strcat(str, conditions_intensity_str[cond->intensity]);
+
+            // Making the first letter uppercase
+            if(str[0] != '-' && str[0] != '+')
+              str[0] = str[0] - 32;
+      }
 			else
-			    str = C_("sky conditions", "Invalid");
-			return (strlen (str) > 0) ? str : "-";
+			    strcpy(str, C_("sky conditions", "Invalid"));
+			return (strlen(str) > 0) ? _(str) : "-";
     }
 }
 
@@ -228,10 +262,22 @@ requests_init (GWeatherInfo *info)
 }
 
 void
-_gweather_info_request_done (GWeatherInfo *info)
+_gweather_info_begin_request (GWeatherInfo *info,
+                            SoupMessage *message)
 {
-    if (!--info->priv->requests_pending)
-        g_signal_emit (info, gweather_info_signals[SIGNAL_UPDATED], 0);
+  info->priv->requests_pending = g_slist_prepend (info->priv->requests_pending, message);
+  g_object_ref (message);
+}
+ 
+void
+_gweather_info_request_done (GWeatherInfo *info,
+                            SoupMessage  *message)
+{
+  info->priv->requests_pending = g_slist_remove (info->priv->requests_pending, message);
+  g_object_ref (message);
+
+  if (info->priv->requests_pending == NULL)
+    g_signal_emit (info, gweather_info_signals[SIGNAL_UPDATED], 0);
 }
 
 /* it's OK to pass in NULL */
@@ -428,7 +474,7 @@ settings_changed_cb (GSettings    *settings,
        Otherwise just wait for the update that will happen at
        the end
     */
-    if (priv->requests_pending == 0)
+    if (priv->requests_pending == NULL)
         g_signal_emit (info, gweather_info_signals[SIGNAL_UPDATED], 0);
 }
 
@@ -594,12 +640,25 @@ gweather_info_update (GWeatherInfo *info)
 void
 gweather_info_abort (GWeatherInfo *info)
 {
-    g_return_if_fail (GWEATHER_IS_INFO (info));
+  GSList *list, *iter;
+  GSList dummy = { NULL, NULL };
 
-    if (info->priv->session) {
-	soup_session_abort (info->priv->session);
-	info->priv->requests_pending = 0;
-    }
+  g_return_if_fail (GWEATHER_IS_INFO (info));
+
+  if (info->priv->session == NULL) {
+    g_assert (info->priv->requests_pending == NULL);
+    return;
+  }
+
+  list = info->priv->requests_pending;
+  /* to block updated signals */
+  info->priv->requests_pending = &dummy;
+
+  for (iter = list; iter; iter = iter->next)
+    soup_session_cancel_message (info->priv->session, iter->data, SOUP_STATUS_CANCELLED);
+  g_slist_free (list);
+
+  info->priv->requests_pending = NULL;
 }
 
 static void

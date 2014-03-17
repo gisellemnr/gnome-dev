@@ -274,6 +274,7 @@ struct _GWeatherConditions {
 
     GWeatherConditionIntensity intensity;
     GWeatherConditionDescriptor descriptor;
+    // FIXME: more than one precipitation might occur.
     GWeatherConditionPrecipitation precipitation;
     GWeatherConditionObscuration obscuration;
     GWeatherConditionOther other;

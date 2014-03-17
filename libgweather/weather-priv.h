@@ -191,10 +191,10 @@ gboolean        owm_start_open          (GWeatherInfo *info);
 gboolean	metar_parse		(gchar *metar,
 					 GWeatherInfo *info);
 
-void            _gweather_info_begin_request (GWeatherInfo *info,
-					      SoupMessage  *message);
+void		_gweather_info_begin_request (GWeatherInfo *info,
+                                    SoupMessage *message);
 void		_gweather_info_request_done (GWeatherInfo *info,
-					     SoupMessage  *message);
+                                    SoupMessage *message);
 
 void		ecl2equ			(gdouble t,
 					 gdouble eclipLon,
